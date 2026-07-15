@@ -62,8 +62,24 @@ def insert_literal_number(paragraph, number):
     paragraph._p.insert(insert_at, run)
 
 
-def normalize_reference_list(document, title_index, insert_missing):
-    """统一文后条目：去掉自动编号，并按需要补入正文字符编号。"""
+def inspect_reference_list(document, title_index):
+    """统计文后条目的编号形态，供处理前确认当前所处的维护阶段。"""
+    total = 0
+    literal = 0
+    automatic = 0
+    for paragraph in document.paragraphs[title_index + 1 :]:
+        if not paragraph_text(paragraph):
+            continue
+        total += 1
+        if re.match(r"^\[(\d+)\]", paragraph_text(paragraph)):
+            literal += 1
+        if paragraph._p.pPr is not None and paragraph._p.pPr.find(qn("w:numPr")) is not None:
+            automatic += 1
+    return total, literal, automatic
+
+
+def normalize_reference_list(document, title_index, insert_missing, remove_automatic):
+    """统一文后条目：按显式授权去掉自动编号，并按需要补入正文字符编号。"""
     references = {}
     removed_auto = 0
     inserted = 0
@@ -72,7 +88,7 @@ def normalize_reference_list(document, title_index, insert_missing):
         text = paragraph_text(paragraph)
         if not text:
             continue
-        if remove_auto_numbering(paragraph):
+        if remove_automatic and remove_auto_numbering(paragraph):
             removed_auto += 1
         match = re.match(r"^\[(\d+)\]", paragraph_text(paragraph))
         if match is None:
@@ -253,18 +269,31 @@ def main():
     parser.add_argument("--normalize-reference-list", action="store_true", help="删除参考文献段落的 Word 自动编号")
     parser.add_argument("--insert-missing-reference-numbers", action="store_true", help="对没有 [N] 文本的文后条目按顺序插入编号")
     parser.add_argument("--bookmark-prefix", default="Ref", help="可见书签前缀，默认 Ref，生成 Ref_001")
+    parser.add_argument("--check", action="store_true", help="仅报告文后编号类型，不写入文件")
     parser.add_argument("--verify", action="store_true", help="校验 REF 域数量、书签名称和上标格式")
     args = parser.parse_args()
 
     document = Document(args.input)
     title_index = find_reference_title(document)
+    total, literal, automatic = inspect_reference_list(document, title_index)
+    if args.check:
+        print(
+            f"文后条目 {total} 条；正文字符编号 {literal} 条；"
+            f"Word 自动编号 {automatic} 条。"
+        )
+        if automatic:
+            print("当前为写作阶段或混合编号状态；定稿转换请加 --normalize-reference-list。")
+        else:
+            print("当前文后编号为正文字符编号，可直接用于定稿交叉引用。")
+        return
+    if automatic and not args.normalize_reference_list:
+        raise ValueError("参考文献区存在 Word 自动编号；请加 --normalize-reference-list 后再生成交叉引用")
     references, removed_auto, inserted = normalize_reference_list(
         document,
         title_index,
         args.insert_missing_reference_numbers,
+        args.normalize_reference_list,
     )
-    if not args.normalize_reference_list and removed_auto:
-        raise ValueError("参考文献区存在 Word 自动编号；请加 --normalize-reference-list 清除后再生成交叉引用")
     ensure_no_cross_run_citations(document, title_index)
 
     used_numbers = set()

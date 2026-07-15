@@ -26,6 +26,14 @@
 
 ## 推荐命令
 
+先只读检查当前编号形态：
+
+```powershell
+python scripts/numeric_refcite.py 论文.docx --check
+```
+
+输出中“Word 自动编号 0 条”表示 `[N]` 是正文字符；“Word 自动编号大于 0 条”表示仍有 Word 列表编号。脚本不会在未明确传入 `--normalize-reference-list` 时静默删除自动编号。
+
 已存在正文字符编号，并需要清除自动编号：
 
 ```powershell

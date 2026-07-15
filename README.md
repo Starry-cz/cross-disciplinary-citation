@@ -7,7 +7,7 @@
 - 体系：GB/T 7714、APA、Chicago（Author-Date / Notes-Bibliography）、MLA、IEEE、Vancouver/NLM、AMA、ACS、CSE，以及法学辖区格式。
 - 来源：期刊、会议、专著、书章、学位论文、报告、预印本、数据集、软件、代码、标准、专利、网页、法规/判例、视听资料、个人通信和 AI 辅助内容。
 - 文内形式：作者—年份、顺序编码、作者—页码、脚注/尾注、法学引证。
-- Word：作者—年份精确映射为 REF 域；顺序编码可批量生成可见书签、上标 REF 域，并清除参考文献区的 Word 自动编号。
+- Word：作者—年份精确映射为 REF 域；顺序编码可先检查文后编号类型，再批量生成可见书签、上标 REF 域；只有显式传入参数时才会清除 Word 自动编号。
 
 ## 安装
 
@@ -27,6 +27,7 @@ git clone https://github.com/Starry-cz/cross-disciplinary-citation.git "$HOME\.c
 6. 顺序编码 DOCX 交叉引用使用 `scripts/numeric_refcite.py`：
 
 ```powershell
+python scripts/numeric_refcite.py 论文.docx --check
 python scripts/numeric_refcite.py 论文.docx --normalize-reference-list --verify
 ```
 

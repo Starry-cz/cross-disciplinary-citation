@@ -1,0 +1,27 @@
+# 每条记录都填可验证字段；不适用字段保持为空，不要猜测补全。
+id: ""
+type: "article-journal" # 例如 article-journal、paper-conference、book、dataset、software、standard、patent、report、webpage、legal-case
+contributors:
+  - role: "author"
+    family: ""
+    given: ""
+title: ""
+container_title: ""
+publisher: ""
+institution: ""
+year: ""
+month: ""
+day: ""
+volume: ""
+issue: ""
+pages: ""
+article_number: ""
+edition: ""
+version: ""
+doi: ""
+url: ""
+accessed: "" # 仅在目标规范要求或内容易变时填写
+identifier:
+  scheme: "" # 例如 ISBN、PMID、arXiv、报告号、标准号、专利号、accession、commit
+  value: ""
+notes: "" # 记录版本关系、更正、法域或待核验字段

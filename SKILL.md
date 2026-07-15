@@ -1,53 +1,53 @@
 ---
-name: chinese-author-year-citation
-description: 为中文社会科学、教育学与学位论文规范 GB/T 7714-2015 参考文献、文内著者—年份引文和 Word 可点击交叉引用。适用于用户要求处理或校对“（作者，年份）”“作者（年份）”、顺序编码制 [N]、中英文混合、多文献并列引注，或将 DOCX 文内引文链接到文末参考文献时使用。
+name: cross-disciplinary-citation
+description: 为自然科学、社会科学、人文学科、医学、工程与计算机科学规范参考文献、文内引文、脚注/尾注和 Word 可点击交叉引用。适用于 APA、Chicago、MLA、IEEE、Vancouver/NLM、AMA、ACS、CSE、GB/T 7714 等体系，以及期刊论文、会议论文、专著、章节、学位论文、预印本、数据集、软件、代码仓库、标准、专利、技术报告、网页、法规与视听资料的著录、核对或 DOCX 引用链接任务。
 ---
 
-# 中文著者年份引文与交叉引用
+# 跨学科参考文献与交叉引用
 
-## 先确认任务
+## 先确定规范
 
-1. 区分引文体系：著者—年份制、顺序编码制，或两者并存但分章节使用；不要混用。
-2. 以用户给出的文后参考文献为准；不要凭题名或主题猜测来源。
-3. 需要将 DOCX 变为可点击交叉引用时，保留原文件并另存输出。编号制可采用上游 `ref-citation-embedder` 的 `[N] → REF` 工作流；著者—年份制采用本技能脚本。
+1. 确认目标期刊/学校、引文体系、版本与语言；投稿指南优先于通用规则。
+2. 在 [references/style-routing.md](references/style-routing.md) 选择作者—年份、顺序编码、脚注/尾注或法学辖区引证。
+3. 读取 [references/source-types.md](references/source-types.md)，按来源类型收集必要元数据；不补造作者、卷期、页码、DOI、版本或日期。
+4. 涉及网页、预印本、软件、数据、代码、标准、专利、法规或判例时，读取 [references/digital-and-legal-sources.md](references/digital-and-legal-sources.md)。
 
-## 著者—年份制写法
+## 规范与核对工作流
 
-- 中文括注：`（景安磊等，2024）`；若用户或期刊要求英文标点，可写 `(景安磊等, 2024)`。
-- 叙述式：`景安磊等（2024）指出……`；不要重复写为“景安磊等（2024）……（景安磊等，2024）”。
-- 两位作者：`（李木洲、孙艺源，2024）`；英文为 `(Wang & Li, 2024)`。
-- 三位及以上作者：中文常用首位作者加“等”，英文常用首位作者加 `et al.`，但以目标期刊规定为准。
-- 多篇并列：`（滕洋，2023；景安磊等，2024）`。每一项必须能在文后唯一定位。
-- 同一作者同年多篇：在年份后加 `a`、`b`，例如 `（王明，2024a，2024b）`，并使文后条目同步。
-- 转引、页码、机构作者、无日期和法规类条目的处理，读取 [references/citation-patterns.md](references/citation-patterns.md)。
+1. 从 [assets/bibliography-record-template.yaml](assets/bibliography-record-template.yaml) 复制记录模板，逐条填入可验证元数据。
+2. 统一一个作品的版本：不要把预印本和正式发表版当成同一论断的两篇独立来源；无版本比较目的时优先正式版。
+3. 核对作者顺序、题名、出处、年份、版本、卷(期)、页码/文章号、持久标识符与访问条件。DOI、软件版本、数据版本和代码 commit/tag 不可互换。
+4. 依据所选体系生成正文引文和文后条目；文内每一项都必须唯一指向文后记录或脚注。
+5. 按 [references/citation-integrity.md](references/citation-integrity.md) 审计：核实可追溯性、引文与论断匹配、转引、重版、撤稿/更正、个人通信与 AI 生成内容。
 
-## DOCX 交叉引用工作流
+## Word 交叉引用
 
-1. 检查文末存在“参考文献”标题，且每一条以唯一 `[N]` 编号开始；这是书签目标的唯一依据。
-2. 创建 UTF-8 映射文件，每行 `正文中精确可见的引文=文后编号`。不要含外层括号。例如：
+### 作者—年份
 
-   ```text
-   景安磊等, 2024=1
-   滕洋，2023=2
-   Wang & Li, 2024=3
-   ```
+仅处理文中精确可见的引文文本，例如 `(Smith et al., 2025)`、`（王明等，2024）`。文末对应条目必须以唯一 `[N]` 开头。
 
-   可复制 [assets/citation-map-template.txt](assets/citation-map-template.txt)，或参照 [examples/citations.example.txt](examples/citations.example.txt)。
-
-3. 先用 `--check` 核对每个映射和出现次数，再执行写入：
+1. 从 [assets/author-date-map-template.txt](assets/author-date-map-template.txt) 创建映射，每行 `精确引文=文后编号`，不含外层括号。
+2. 先检查，再写入：
 
    ```powershell
    python scripts/author_year_refcite.py 论文.docx --map-file citations.txt --check
    python scripts/author_year_refcite.py 论文.docx --map-file citations.txt --verify
    ```
 
-4. 在 Word 打开输出文件后按 `Ctrl+A`、`F9` 更新域；按住 `Ctrl` 点击引文，确认能跳转到对应条目。
+3. 在 Word 中 `Ctrl+A`、`F9` 更新域，再用 `Ctrl+单击` 验证跳转。
 
-5. 发布或交付前运行 `python scripts/validate_skill.py .`，检查技能清单、核心文件和本地链接。
+### 顺序编码
 
-## 硬性规则
+对于 IEEE、Vancouver、AMA、GB/T 7714 等 `[N]` 或上标编号体系，使用上游 [ref-citation-embedder](https://github.com/hey123760/ref-citation-embedder) 将已确认的编号标记转换为 REF 域。先决定每一处应引用哪条记录，再处理编号和链接；不要靠题名关键词自动猜测。
 
-- 映射必须是精确文本匹配。找不到、同一引文映射到多个编号、参考文献编号重复或引文跨 Word run 时，停止并修复源文档或映射，不猜测、不自动替换。
-- 不移动、重排或改写文后参考文献，只添加书签与 REF 域；需要按首次出现顺序重排时使用上游 `ref-citation-embedder`。
-- 脚本只处理正文与参考文献标题之间的段落，跳过标题及文后条目。
-- 写入前自动生成 `.bak.docx`；每次输出为 `*_著者年份交叉引用.docx`，不会覆盖原文件。
+### 脚注/尾注与法学引证
+
+Chicago Notes-Bibliography、OSCOLA、Bluebook、法院或本地法规格式通常需要页码、段落号、法域和缩略引注。先按目标法域或出版社指南生成注释；不将它们强制转换为编号文后条目。
+
+## 硬性边界
+
+- 不伪造或补全无法验证的书目信息；缺失字段必须标明缺失或向用户索取来源。
+- 不把搜索摘要、二手转述或模型记忆当作已读原文；转引须明确，并以投稿指南为准。
+- 不混用体系：同一文稿不要把作者—年份、编号、脚注格式拼接成未获许可的混合体系。
+- 不重排、删改或替换用户文末条目，除非用户明确要求；Word 脚本默认另存输出并保留备份。
+- 交付前运行 `python scripts/validate_skill.py .`，并以真实文献记录做代表性前向检查。

@@ -1,5 +1,4 @@
-﻿interface:
-  display_name: "中文作者年份引文"
-  short_description: "处理 GB/T 7714 文后著录与 Word 可跳转交叉引用"
-  default_prompt: "使用 $chinese-author-year-citation 为这篇中文论文规范文内引文并生成 Word 交叉引用。"
-
+interface:
+  display_name: "跨学科参考文献与交叉引用"
+  short_description: "处理多学科引文体系、来源类型与 Word 可跳转引用"
+  default_prompt: "使用 $cross-disciplinary-citation 为这篇论文选择规范并核对参考文献和文内引文。"

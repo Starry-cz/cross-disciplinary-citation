@@ -26,6 +26,14 @@
 
 ## 推荐命令
 
+写作阶段：把现有的正文字符 `[N]` 转成 Word 自动编号：
+
+```powershell
+python scripts/reference_auto_numbering.py 论文.docx --verify
+```
+
+这会删除段首的真实 `[N]`，并在 Word 左侧生成选不中的自动编号。它适合增删条目，但不能作为定稿 REF 交叉引用的目标；需要投稿版时，应从保留文字编号的源文件重新生成。
+
 先只读检查当前编号形态：
 
 ```powershell

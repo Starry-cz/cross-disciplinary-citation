@@ -102,8 +102,8 @@ def make_ref_runs(bookmark, display, source_rpr):
 
 
 def add_bookmark(paragraph, number, used_names, used_ids):
-    """为文后条目加唯一书签；名称或 ID 冲突时明确报错。"""
-    name = f"_AYRef{number}"
+    """为文后条目加 Word 界面可见的唯一书签。"""
+    name = f"AYRef_{number:03d}"
     bookmark_id = str(9000 + number)
     if name in used_names or bookmark_id in used_ids:
         raise ValueError(f"书签冲突：{name} 或 id={bookmark_id}")
@@ -114,6 +114,8 @@ def add_bookmark(paragraph, number, used_names, used_ids):
     end.set(qn("w:id"), bookmark_id)
     paragraph._p.insert(0, start)
     paragraph._p.append(end)
+    used_names.add(name)
+    used_ids.add(bookmark_id)
     return name
 
 
@@ -215,7 +217,7 @@ def main():
             1
             for paragraph in verified.paragraphs
             for node in paragraph._p.iter(f"{{{NS}}}instrText")
-            if node.text and " REF _AYRef" in node.text
+            if node.text and " REF AYRef_" in node.text
         )
         if ref_fields != sum(occurrences.values()):
             raise ValueError(f"REF 域数量不一致：预期 {sum(occurrences.values())}，实际 {ref_fields}")

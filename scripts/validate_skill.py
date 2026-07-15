@@ -10,6 +10,7 @@ REQUIRED = (
     "SKILL.md",
     "agents/openai.yaml",
     "references/citation-patterns.md",
+    "references/word-maintenance-workflow.md",
     "references/style-routing.md",
     "references/source-types.md",
     "references/digital-and-legal-sources.md",
@@ -18,6 +19,7 @@ REQUIRED = (
     "assets/author-date-map-template.txt",
     "examples/interdisciplinary-records.yaml",
     "scripts/author_year_refcite.py",
+    "scripts/numeric_refcite.py",
     "README.md",
 )
 
@@ -47,6 +49,7 @@ def main():
 
     # 编译脚本能快速发现发布前的语法错误。
     compile((root / "scripts/author_year_refcite.py").read_text(encoding="utf-8"), "author_year_refcite.py", "exec")
+    compile((root / "scripts/numeric_refcite.py").read_text(encoding="utf-8"), "numeric_refcite.py", "exec")
     print("技能发布结构、资源路由和脚本语法均通过校验。")
 
 

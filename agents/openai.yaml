@@ -1,0 +1,5 @@
+﻿interface:
+  display_name: "中文作者年份引文"
+  short_description: "处理 GB/T 7714 文后著录与 Word 可跳转交叉引用"
+  default_prompt: "使用 $chinese-author-year-citation 为这篇中文论文规范文内引文并生成 Word 交叉引用。"
+

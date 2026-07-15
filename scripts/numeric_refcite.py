@@ -108,6 +108,19 @@ def normalize_reference_list(document, title_index, insert_missing, remove_autom
     return references, removed_auto, inserted
 
 
+def auto_numbered_references(document, title_index):
+    """按文后 Word 自动编号段落的顺序建立编号映射，供写作阶段交叉引用使用。"""
+    references = {}
+    for index, paragraph in enumerate(document.paragraphs[title_index + 1 :], title_index + 1):
+        paragraph_properties = paragraph._p.pPr
+        if paragraph_properties is None or paragraph_properties.find(qn("w:numPr")) is None:
+            continue
+        references[len(references) + 1] = index
+    if not references:
+        raise ValueError("参考文献区未找到 Word 自动编号条目")
+    return references
+
+
 def existing_bookmarks(document):
     """收集已有书签，避免覆盖用户手工维护的交叉引用目标。"""
     names, ids = set(), set()
@@ -135,7 +148,28 @@ def add_bookmark(paragraph, number, prefix, names, ids):
     start.set(qn("w:name"), name)
     end = OxmlElement("w:bookmarkEnd")
     end.set(qn("w:id"), bookmark_id)
-    paragraph._p.insert(0, start)
+    # Word 要求段落属性 pPr 位于首位；书签必须放在其后，才能被识别为编号段落的引用目标。
+    insert_at = 1 if paragraph._p.pPr is not None else 0
+    paragraph._p.insert(insert_at, start)
+    paragraph._p.append(end)
+    names.add(name)
+    ids.add(bookmark_id)
+    return name
+
+
+def add_word_numbered_item_bookmark(paragraph, number, names, ids):
+    """添加 Word 编号项交叉引用所需的内部书签，并与可见书签同时保留。"""
+    name = f"_Ref{900000000 + number}"
+    bookmark_id = str(9000 + number)
+    if name in names or bookmark_id in ids:
+        raise ValueError(f"Word 编号项书签冲突：{name} 或 id={bookmark_id}")
+    start = OxmlElement("w:bookmarkStart")
+    start.set(qn("w:id"), bookmark_id)
+    start.set(qn("w:name"), name)
+    end = OxmlElement("w:bookmarkEnd")
+    end.set(qn("w:id"), bookmark_id)
+    insert_at = 1 if paragraph._p.pPr is not None else 0
+    paragraph._p.insert(insert_at, start)
     paragraph._p.append(end)
     names.add(name)
     ids.add(bookmark_id)
@@ -175,12 +209,17 @@ def make_text_run(text, source_rpr, superscript=False):
     return run
 
 
-def make_ref_field(bookmark, display, source_rpr):
+def make_ref_field(bookmark, display, source_rpr, numbered_item=False):
     """创建显示为上标数字的 REF 域，正文可 Ctrl+单击跳转。"""
+    instruction = f" REF {bookmark}"
+    # \n 让 Word 返回目标自动编号段落的编号值，而不是整条参考文献文本。
+    if numbered_item:
+        instruction += " \\n"
+    instruction += " \\h \\* MERGEFORMAT"
     result = []
     for kind, value in (
         ("begin", None),
-        ("instruction", f" REF {bookmark} \\h \\* MERGEFORMAT"),
+        ("instruction", instruction),
         ("separate", None),
         ("display", display),
         ("end", None),
@@ -202,7 +241,7 @@ def make_ref_field(bookmark, display, source_rpr):
     return result
 
 
-def emit_cluster(cluster, bookmarks, source_rpr):
+def emit_cluster(cluster, bookmarks, source_rpr, numbered_item=False):
     """保留 [3,27]、[13-18] 的符号，并让可见数字各自可跳转。"""
     pieces = []
     cursor = 0
@@ -212,14 +251,14 @@ def emit_cluster(cluster, bookmarks, source_rpr):
         number = int(match.group(0))
         if number not in bookmarks:
             raise ValueError(f"正文引用了不存在的参考文献编号：[{number}]")
-        pieces.extend(make_ref_field(bookmarks[number], match.group(0), source_rpr))
+        pieces.extend(make_ref_field(bookmarks[number], match.group(0), source_rpr, numbered_item))
         cursor = match.end()
     if cursor < len(cluster):
         pieces.append(make_text_run(cluster[cursor:], source_rpr, superscript=True))
     return pieces
 
 
-def replace_run(run, bookmarks):
+def replace_run(run, bookmarks, numbered_item=False):
     """仅处理单文本节点 run；跨 run 引文必须先在 Word 中合并格式。"""
     texts = run.findall(qn("w:t"))
     if len(texts) != 1:
@@ -237,7 +276,7 @@ def replace_run(run, bookmarks):
         if match.start() > cursor:
             parent.insert(insert_at, make_text_run(original[cursor : match.start()], source_rpr))
             insert_at += 1
-        for field_run in emit_cluster(match.group(0), bookmarks, source_rpr):
+        for field_run in emit_cluster(match.group(0), bookmarks, source_rpr, numbered_item):
             parent.insert(insert_at, field_run)
             insert_at += 1
         total_numbers += len(re.findall(r"\d+", match.group(0)))
@@ -268,6 +307,7 @@ def main():
     parser.add_argument("--output", help="输出 DOCX；默认在输入文件名后加 _交叉引用")
     parser.add_argument("--normalize-reference-list", action="store_true", help="删除参考文献段落的 Word 自动编号")
     parser.add_argument("--insert-missing-reference-numbers", action="store_true", help="对没有 [N] 文本的文后条目按顺序插入编号")
+    parser.add_argument("--auto-reference-list", action="store_true", help="已弃用；Word 自动编号请使用 word_auto_refcite.ps1")
     parser.add_argument("--bookmark-prefix", default="Ref", help="可见书签前缀，默认 Ref，生成 Ref_001")
     parser.add_argument("--check", action="store_true", help="仅报告文后编号类型，不写入文件")
     parser.add_argument("--verify", action="store_true", help="校验 REF 域数量、书签名称和上标格式")
@@ -286,14 +326,21 @@ def main():
         else:
             print("当前文后编号为正文字符编号，可直接用于定稿交叉引用。")
         return
+    if args.auto_reference_list:
+        raise ValueError("Word 自动编号交叉引用请使用 scripts/word_auto_refcite.ps1；它调用 Word 原生编号项交叉引用接口")
     if automatic and not args.normalize_reference_list:
         raise ValueError("参考文献区存在 Word 自动编号；请加 --normalize-reference-list 后再生成交叉引用")
-    references, removed_auto, inserted = normalize_reference_list(
-        document,
-        title_index,
-        args.insert_missing_reference_numbers,
-        args.normalize_reference_list,
-    )
+    if args.auto_reference_list:
+        references = auto_numbered_references(document, title_index)
+        removed_auto = 0
+        inserted = 0
+    else:
+        references, removed_auto, inserted = normalize_reference_list(
+            document,
+            title_index,
+            args.insert_missing_reference_numbers,
+            args.normalize_reference_list,
+        )
     ensure_no_cross_run_citations(document, title_index)
 
     used_numbers = set()
@@ -307,31 +354,43 @@ def main():
         raise ValueError(f"正文引用了不存在的编号：{missing}")
 
     names, ids = existing_bookmarks(document)
-    bookmarks = {
-        number: add_bookmark(document.paragraphs[references[number]], number, args.bookmark_prefix, names, ids)
-        for number in sorted(used_numbers)
-    }
+    bookmarks = {}
+    for number in sorted(used_numbers):
+        paragraph = document.paragraphs[references[number]]
+        # 保留 Ref_001 供用户在 Word 书签窗口手工维护；编号项交叉引用另用 Word 内部目标。
+        add_bookmark(paragraph, number, args.bookmark_prefix, names, ids)
+        bookmarks[number] = (
+            add_word_numbered_item_bookmark(paragraph, number, names, ids)
+            if args.auto_reference_list
+            else bookmark_name(args.bookmark_prefix, number)
+        )
     fields_written = 0
     for paragraph in document.paragraphs[:title_index]:
         for run in list(paragraph._p.findall(qn("w:r"))):
-            fields_written += replace_run(run, bookmarks)
+            fields_written += replace_run(run, bookmarks, args.auto_reference_list)
 
     output = args.output or os.path.splitext(args.input)[0] + "_交叉引用.docx"
     document.save(output)
     if args.verify:
         verified = Document(output)
         field_count = 0
+        numbered_item_fields = 0
+        target_prefix = "_Ref" if args.auto_reference_list else f"{args.bookmark_prefix}_"
         superscript_count = 0
         for paragraph in verified.paragraphs:
             for node in paragraph._p.iter(qn("w:instrText")):
-                if node.text and f" REF {args.bookmark_prefix}_" in node.text:
+                if node.text and f" REF {target_prefix}" in node.text:
                     field_count += 1
+                    if " \\n" in node.text:
+                        numbered_item_fields += 1
             for run in paragraph._p.iter(qn("w:r")):
                 rpr = run.find(qn("w:rPr"))
                 if rpr is not None and rpr.find(qn("w:vertAlign")) is not None:
                     superscript_count += 1
         if field_count != fields_written:
             raise ValueError(f"REF 域数量不一致：预期 {fields_written}，实际 {field_count}")
+        if args.auto_reference_list and numbered_item_fields != fields_written:
+            raise ValueError("自动编号交叉引用缺少 \\n 编号段落开关")
         if superscript_count < fields_written:
             raise ValueError("上标格式数量异常，请检查输出文档")
     print(f"已写入 {fields_written} 个 REF 域；删除自动编号 {removed_auto} 处；补入文本编号 {inserted} 处；输出：{output}")

@@ -32,7 +32,13 @@
 python scripts/reference_auto_numbering.py 论文.docx --verify
 ```
 
-这会删除段首的真实 `[N]`，并在 Word 左侧生成选不中的自动编号。它适合增删条目，但不能作为定稿 REF 交叉引用的目标；需要投稿版时，应从保留文字编号的源文件重新生成。
+这会删除段首的真实 `[N]`，并在 Word 左侧生成选不中的自动编号。需要同时保留正文的可点击上标引用时，继续执行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/word_auto_refcite.ps1 -InputPath 论文_自动编号.docx -OutputPath 论文_自动编号_交叉引用.docx
+```
+
+该模式要求 Windows 安装 Microsoft Word，并由 Word 原生接口生成 `REF Ref_001 \n \h`：`\n` 读取目标自动编号的编号值，`\h` 支持 Ctrl+单击跳转。添加、删除或移动文后条目后，先更新自动编号，再按 `Ctrl+A`、`F9` 更新正文 REF 域；若加入了新的文献条目，重新运行命令以为该条建立可见书签。
 
 先只读检查当前编号形态：
 

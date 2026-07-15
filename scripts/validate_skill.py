@@ -21,6 +21,7 @@ REQUIRED = (
     "scripts/author_year_refcite.py",
     "scripts/numeric_refcite.py",
     "scripts/reference_auto_numbering.py",
+    "scripts/word_auto_refcite.ps1",
     "README.md",
 )
 

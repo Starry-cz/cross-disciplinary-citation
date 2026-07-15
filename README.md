@@ -28,6 +28,7 @@ git clone https://github.com/Starry-cz/cross-disciplinary-citation.git "$HOME\.c
 
 ```powershell
 python scripts/reference_auto_numbering.py 论文.docx --verify
+powershell -ExecutionPolicy Bypass -File scripts/word_auto_refcite.ps1 -InputPath 论文_自动编号.docx -OutputPath 论文_自动编号_交叉引用.docx
 python scripts/numeric_refcite.py 论文.docx --check
 python scripts/numeric_refcite.py 论文.docx --normalize-reference-list --verify
 ```
@@ -35,7 +36,7 @@ python scripts/numeric_refcite.py 论文.docx --normalize-reference-list --verif
 ## Word 维护策略
 
 - 写作阶段可使用 Zotero/EndNote、Word 自动编号或模板，便于增删文献。
-- 已有 `[N]` 文本编号时，可用 `scripts/reference_auto_numbering.py` 生成 Word 自动编号版；该版本不用于定稿 REF 交叉引用。
+- 已有 `[N]` 文本编号时，可用 `scripts/reference_auto_numbering.py` 生成 Word 自动编号版；在 Windows Microsoft Word 环境中再使用 `word_auto_refcite.ps1` 生成可点击、上标的正文编号引用。
 - 定稿投稿前转换为正文字符编号 `[1]`、`[2]`，并批量生成上标交叉引用。
 - 需要后续手工维护时，脚本默认创建 `Ref_001` 这类可见书签，可在 Word “交叉引用 -> 书签 -> 书签文字”中继续插入。
 
